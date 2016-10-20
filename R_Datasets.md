@@ -259,5 +259,57 @@ pairs(bodyfat[ , 1:6])
 
 ## Fail but quick and loudly
 
+```{r}
+
+message("Your code is talking to you")
+
+#for(i in c(2, 1, 0, -1)){
+#  sqrt(i)
+#}
+
+for(i in c(2, 1, 0, -1)){
+  if(i >= 0){
+    sqrt(i)
+    print(i)
+  }
+}
+
+# Trying to calculate the mean of the columns 4th, 3rd, and 17th
+# Unknown vector
+UnknownVector <- c(c(4, 3, 17))
+#sapply( UnknonwVector, function(x){
+#  mean(bodyfat[, x])
+#})
+
+# bodyfat[ ,17]
+
+# Lets prevent to have an error:
+# option 1:
+sapply( UnknownVector, function(x){
+  try(mean(bodyfat[, x]))
+} )
+
+# Option 2:
+sapply( UnknownVector[ which( UnknownVector %in% 1:dim(bodyfat)[2] ) ], function(x){
+  mean( bodyfat[, x] )
+} )
+
+# Option 3:
+options(show.error.messages = FALSE)
+sapply( UnknownVector, function(x){
+  to_return <- NA
+  column <- try(bodyfat[, x])
+  if( class(column) == "try-error" ){
+    message( paste0("The column ", x, " does not exist, I'm sorry :( ") )
+  }  else
+    to_return <- mean( column )
+  return(to_return)
+} )
+options(show.error.messages = TRUE)
+
+
+
+
+```
 
 
