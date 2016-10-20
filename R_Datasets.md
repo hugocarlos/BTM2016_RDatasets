@@ -62,11 +62,11 @@ mean(bodyfat$age)
 
 # How many are younger than 31 years old?
 younger_than_31 <- bodyfat[ (bodyfat$age < 31), ]
-length(younger_than_31)
+dim(younger_than_31)[2]
 
 # Another way
 not_older_than_30 <- bodyfat[ !(bodyfat$age > 30), ]
-length(not_older_than_30)
+dim(not_older_than_30)[2]
 
 # Watch out!
 head( bodyfat[  !(bodyfat$age  > 30), ] )
