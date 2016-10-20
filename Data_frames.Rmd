@@ -1,0 +1,240 @@
+---
+title: "Data frames and data import/export"
+author: "Hugo and Nadia"
+data: "BTM 2016"
+output: html_document
+---
+
+```{r setup, echo=FALSE}
+options(width = 110)
+```
+
+# Data frame
+
+* Data frame -- 2-dimensional table with data (Excel spreadsheet, SQL-таблица)
+* De facto it is standard way of data storage as "observations/variables": <br> rows are associated with observations, columns -- with variables
+
+Places        N\_coord     E\_coord           Date     Temp
+-------      ---------    ---------     ----------   ------
+MM Faculty       59.88        29.83     07.01.2014      -15
+PP Fortress      59.95        30.32     15.05.2013       17
+SPbU main        59.94        30.3      22.06.2013       22
+MM Faculty       59.88        29.83     09.01.2014      -21
+...                ...          ...            ...      ...
+
+Data frame inherited properties of matrices (rectangular shape) and lists (variables can have different types).
+
+## Creating data frames
+
+```{r}
+LETTERS
+```
+
+```{r}
+df <- data.frame(x = 1:4, y = LETTERS[1:4], z = c(T, F))
+df
+```
+
+Function `str` gives information about the object and types of its variables:
+```{r}
+str(df)
+```
+
+## Names
+
+```{r}
+df <- data.frame(x = 1:4, y = LETTERS[1:4], z = c(T, F), 
+                 row.names = c("Alpha", "Bravo", "Charlie", "Delta"))
+df
+```
+
+```{r}
+rownames(df)
+colnames(df)
+dimnames(df)
+```
+
+## Dimensions
+
+```{r}
+nrow(df); ncol(df) #dim(df)
+```
+
+Important peculiarities:
+
+* `length(df)` returns the number of _columns_ (variables), not the overall element number
+* `names(df)` also returns only column names
+
+```{r}
+length(df); names(df)
+```
+
+## Data frame indexing
+
+Indexing works the same way as for matrix:
+
+```{r}
+df[3:4, -1]
+```
+
+```{r}
+df[, 1]; df[, 1, drop = FALSE]
+```
+
+Or for lists:
+
+```{r}
+df$z
+df[[3]]
+df[["z"]]
+```
+
+## Subsetting using a condition
+
+You can subset of rows/columns of a data frame by either using `subset` function or directly specifying the condition you want to be fulfilled for your subset:
+
+```{r}
+df[df$x > 2, ]
+```
+
+```{r}
+subset(df, x > 2)
+```
+
+```{r}
+subset(df, x > 2, select = c(x, z))
+```
+
+## Combining data frames
+
+Functions `rbind`/`cbind` work the same way as for matrices:
+
+```{r}
+rbind(df, data.frame(x = 5:6, y = c("K", "Z"), z = TRUE, row.names = c("Kappa", "Zulu")))
+```
+
+```{r}
+cbind(df, data.frame(season = c("Summer", "Autumn", "Winter", "Spring"), temp = c(20, 5, -10, 5)))
+```
+
+## Combining data frames: `merge`
+
+```{r}
+df
+```
+
+Function `merge` allows you to merge data frames by a common variable:
+
+```{r}
+df_salary <- data.frame(x = c(3, 2, 6, 1), salary = c(100, 1000, 300, 500))
+merge(df, df_salary, by = "x")
+```
+
+***
+
+# Importing data
+
+The easiest way to save and load data is using `".RData"` format:
+```{r}
+save(df, file="my_data_frame.RData")
+load("my_data_frame.RData")
+```
+You can save multiple objects or even the whole environment in the `.RData` file. But it's gonna be heavy and not readable by anything else than R.
+
+Usually the data is stored in tables or text/data files, which you will read with `read.*` function.
+
+Main instrument -- `read.table` function:
+* `file` -- имя файла
+* `header` -- наличие или отсутствие заголовка в первой строке
+* `sep` -- разделитель значений, `dec` -- десятичная точка
+* `quote` -- символы, обозначающие кавычки (для строкового типа)
+* `na.strings` -- строки, кодирующие пропущенное значение
+* `colClasses` -- типы столбцов (для быстродействия и указания типа: строка-фактор-дата/время)
+* `comment.char` -- символ, обозначающий комментарий
+* `skip` -- количество строк пропускаемых c начала файла
+
+Functions `read.csv`, `read.csv2`, `read.delim` и `read.delim2` are essentially spans over `read.table` function with different defaults for parameters.
+
+## Typical pre-processing workflow:
+
+* Importing data into a data frame
+* Cleaning the values, checking the types
+* Working with strings: names, character variables, factors
+* Missing values: indentification, processing
+* Manipulating variables: transformation, creation, removal
+* Descriptive statistics calculation: split-apply-combine
+* Visualisation
+* Export
+
+## Cleaning the data, checking the types
+
+* Numeric types can become characters:
+    + because of missing values designated with anything else than `NA`
+      `na.strings = c("NA", "Not Available", "Missing")`
+    + because of wrong separators or decimal signs <br>
+      `sep = ","`, `dec = "."`
+    + because of wrong quotation marks, supplementary text or comments <br>
+      `quote`, `comment.char`, `skip`
+>- Characters can become factors and the other way round <br>
+   `as.character`, `as.factor`
+
+Very useful functions:
+* `str` -- check types of the variables
+* `summary` -- check summary statistics (mean, median, min and max)
+* `head` -- first 6 rows of a data frame
+* `tail`-- last 6 rows of a data frame
+
+## Processing variables
+
+* Functions `complete.cases` and `na.omit` to get rid of observations with missing values: <br>
+   `df[complete.cases(df), ]` or `na.omit(df)`
+* It's dangerous to replace NA with other values!
+* Creating, altering and deleting variables <br>
+    `df$new_var <- <...>`, <br>
+    `df$old_var <- f(df$old_var)`, <br>
+    `df$old_var <- NULL`
+
+## Export
+
+* `write.table`, `write.csv` and `write.csv2` -- almost identical to import functions
+* If an array is big enough, it;s better to separate the pre-processing step
+    + in a separate ".R" file
+    + write the preprocessed ("clean") data in a separate file
+
+## Hands-on part
+
+**Exercise.** The built-in data set `mtcars` contains information about cars from a 1974 Motor Trend issue. 
+Load the data set (`data(mtcars)`) and try to answer the following:
+
+1. What are the variable names? (Try `names`.)
+2. What is the maximum `mpg`?
+3. Which car has this?
+4. What are the first 5 cars listed?
+5. What are all the values for the Mercedes 450slc (`Merc 450SLC`)? Save it in the file "Merc.dat" with `write.table`.
+6. Make a scatterplot of cylinders (`cyl`) vs. miles per gallon (`mpg`). Fit a regression line. Is this a good candidate for linear regression?
+
+```{r, echo=F, eval=F}
+data(mtcars)
+names(mtcars)
+# "mpg"  "cyl"  "disp" "hp"   "drat" "wt"   "qsec" "vs"   "am"   "gear" "carb"
+max(mtcars$mpg)
+# 33.9
+row.names(mtcars)[which.max(mtcars$mpg)]
+# "Toyota Corolla"
+row.names(mtcars)[1:5]
+# "Mazda RX4"         "Mazda RX4 Wag"     "Datsun 710"        "Hornet 4 Drive"    "Hornet Sportabout"
+mtcars$hp[which(row.names(mtcars)=="Valiant")]
+# 105
+mtcars["Merc 450SLC",]
+#              mpg cyl  disp  hp drat   wt qsec vs am gear carb
+# Merc 450SLC 15.2   8 275.8 180 3.07 3.78   18  0  0    3    3
+cor(mtcars$cyl,mtcars$mpg)
+# -0.85
+fit <- lm(mtcars$cyl ~ mtcars$mpg)
+plot(mtcars$mpg,mtcars$cyl)
+abline(fit,col="red")
+```
+
+# Acknowledgements
+
+Huge thanks to [Anton Antonov](http://github.com/tonytonov) for his lectures on R on [stepik.org](http://stepik.org).
