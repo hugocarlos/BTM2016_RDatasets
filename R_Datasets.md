@@ -257,7 +257,7 @@ pairs(bodyfat[ , 1:6])
 ```
 
 
-## Fail but quick and loudly
+## Fail but fast and loudly
 
 ```{r}
 
