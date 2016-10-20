@@ -3,18 +3,16 @@ title: "Datasets_in_R"
 output: html_document
 ---
 
-Download the dataset from:
-```{r}
-'URL'
-```
-
-Read the dataset:
+Download and load the dataset from: `https://git.embl.de/hsanchez/BTM2016_RDatasets/raw/master/bodyfat.csv`
 
 ```{r}
-bodyfat<-read.csv("../BTM2016/R_datasets/bodyfat.csv")
+download.file("https://git.embl.de/hsanchez/BTM2016_RDatasets/raw/master/bodyfat.csv", "bodyfat.csv")
+
+bodyfat<-read.csv("bodyfat.csv")
 ```
 
 Explore the dataset:
+
 ```{r}
 # Firts lines
 head(bodyfat)
@@ -25,6 +23,7 @@ names(bodyfat)
 ```
 
 Brief explanation of the values:
+
 * Density determined from underwater weighing
 * Percent body fat from Siri's (1956) equation
 * Age (years)
@@ -47,12 +46,32 @@ Lets continue exploring the dataset
 # Dimensions
 dim(bodyfat)
 
+# Checking only one column, try the TAB key
+bodyfat$age
+head( bodyfat[ ,4] )
+head( bodyfat[ ,4], 12 )
+
 # Numeric values describing age
 summary(bodyfat$age)
 
 # Getting the mean of the age values
 summary(bodyfat$age)[4]
 mean(bodyfat$age)
+
+
+
+# How many are younger than 31 years old?
+younger_than_31 <- bodyfat[ (bodyfat$age < 31), ]
+length(younger_than_31)
+
+# Another way
+not_older_than_30 <- bodyfat[ !(bodyfat$age > 30), ]
+length(not_older_than_30)
+
+# Watch out!
+head( bodyfat[  !(bodyfat$age  > 30), ] )
+head( bodyfat[  !which(bodyfat$age  > 30), ] )
+## not equivalent!
 
 ```
 
@@ -61,15 +80,18 @@ Getting the mean of all the values
 Using a 'for' loop
 
 ```{r}
-number_of_columns<-length(names(bodyfat))
-number_of_columns<-dim(bodyfat)[2]
-my_vector<-vector(length = number_of_columns)
-for(i in 1:length(names(bodyfat))){
-    one_column<-bodyfat[ ,i]
-    the_mean<-mean(one_column)
-    my_vector[i]<-the_mean
+
+number_of_columns <- length(names(bodyfat))
+number_of_columns <- dim(bodyfat)[2]
+my_vector <- vector(length = number_of_columns)
+for( i in 1:length( names(bodyfat) ) ){
+    one_column <- bodyfat[ ,i]
+    the_mean <- mean(one_column)
+    my_vector[i] <- the_mean
 }
-names(my_vector)<-names(bodyfat)
+names(my_vector) <- names(bodyfat)
+
+my_vector
 
 ```
 
@@ -79,14 +101,54 @@ Using the function 'apply()'
 apply(bodyfat, MARGIN = 2, FUN = mean)
 ```
 
-178 lbs equals to 80 kg, which I think is quite a lot... 
+Is `apply()` really better than `for()`
+
+```{r}
+usingFor <- function(){
+  my_vector <- vector(length = number_of_columns)
+  for( i in 1:length( names(bodyfat) ) ){
+    one_column <- bodyfat[ ,i]
+    the_mean <- mean(one_column)
+    my_vector[i] <- the_mean
+  }
+  names(my_vector) <- names(bodyfat)
+}
+usingApply <- function(){
+  temp <- apply(bodyfat, MARGIN = 2, FUN = mean)
+}
+
+system.time(replicate(1000000, usingFor))
+system.time(replicate(1000000, usingApply))
+
+library(pryr)
+mem_change(v <- 1:1e6)
+mem_change(rm(v))
+try(rm(new_variable))
+mem_change(new_variable <- bodyfat$age)
+
+
+# Going back!
+
+apply(bodyfat, MARGIN = 2, FUN = mean)
+
+```
+
+
+19 percent fat is quite high.
+
 What if this value is age-depentent?
+
 Lets make three subsets and calculate the average weight for each of them:
+
 Subset_1: younger than 31 yo
+
 Subset_2: older than 30 yo but younger than 51 yo
+
 Subset_3: older than 50 yo
 
-# Option 1: generating many variables
+
+Option 1: generating many variables
+
 ```{r}
 Subset_1_indexes<-which(bodyfat$age < 31)
 Subset_1<-bodyfat[Subset_1_indexes, ]
@@ -105,14 +167,97 @@ summary(Subset_2$age)
 summary(Subset_3$age)
 
 # Finally, getting the weight per Subset:
-mean(Subset_1$weight)
-mean(Subset_2$weight)
-mean(Subset_3$weight)
+mean(Subset_1$percent.fat)
+mean(Subset_2$percent.fat)
+mean(Subset_3$percent.fat)
+
+```
+
+Can we make the same in a bit less lines?
+
+```{r}
+# Young people
+mean( bodyfat[  bodyfat$age < 31, ]$percent.fat )
+# Not so young people
+mean( bodyfat[  bodyfat$age > 30 & bodyfat$age < 51, ]$percent.fat )
+# Definitely not young people
+mean( bodyfat[  bodyfat$age > 50, ]$percent.fat )
+```
+
+Is it really convenient to write long lines instead of asigning several variables?
+
+```{r}
+Option1<-function(){
+  Subset_1_indexes<-which(bodyfat$age < 31)
+  Subset_1<-bodyfat[Subset_1_indexes, ]
+  temp_indexes<-which(bodyfat$age > 30)
+  Subset30plus<-bodyfat[temp_indexes, ]
+  Subset_2_indexes<-which(Subset30plus$age < 51)
+  Subset_2<-Subset30plus[Subset_2_indexes, ]
+  Subset_3_indexes<-which(Subset30plus$age > 50)
+  Subset_3<-Subset30plus[Subset_3_indexes, ]
+  summary(Subset_2$age)
+  summary(Subset_3$age)
+  mean(Subset_1$percent.fat)
+  mean(Subset_2$percent.fat)
+  mean(Subset_3$percent.fat)
+}
+
+Option2<-function(){
+  mean( bodyfat[  bodyfat$age < 31, ]$percent.fat )
+  mean( bodyfat[  bodyfat$age > 30 & bodyfat$age < 51, ]$percent.fat )
+  mean( bodyfat[  bodyfat$age > 50, ]$percent.fat )
+}
+
+system.time(replicate(1000000, Option1))
+system.time(replicate(1000000, Option2))
+```
+
+So there was a difference!
+
+What about the other measurements, maybe there was another one with a stronger correlation.
+
+Lets keep using apply functions to find all paired correlations with the age value.
+
+```{r}
+# Which columns are not the index, nor the age?
+I_do_not_want_these_ones<-which(names(bodyfat)==c("X", "age"))
+names(bodyfat[-I_do_not_want_these_ones])
+
+# I calculate the pearson correlations of age and all the other values
+sapply(bodyfat[-I_do_not_want_these_ones], function(x){
+  cor(bodyfat$age, x)
+})
+
+```
+
+Apparently, percent fat was the variable that was mostly postively correlated with age and density was highly negatively correlated.
+
+
+How would this two variables (density and percent of fat) would correlate?
+
+```{r}
+cor(bodyfat$percent.fat, bodyfat$density)
+```
+
+Lets see how the values look like in an xy plot:
+
+```{r}
+plot(bodyfat$age, bodyfat$percent.fat, main="Age vs Percent fat")
+plot(bodyfat$age, bodyfat$density, main="Age vs Density")
+plot(bodyfat$percent.fat, bodyfat$density, main="Percent fat vs Density")
+```
+
+Are we missing any other interesting correlation:
+
+```{r}
+pairs(bodyfat)
+
+pairs(bodyfat[ , 1:6])
 ```
 
 
-
-bodyfat[which(bodyfat$age == 60), ]
+## Fail but quick and loudly
 
 
 
